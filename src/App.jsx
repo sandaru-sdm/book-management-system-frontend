@@ -11,7 +11,7 @@ function App() {
       <Toaster position="top-right" reverseOrder={false} />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/update-book/:id" element={<UpdateBook />} />
+        <Route path="/update-book/:bookId" element={<UpdateBook />} />
         <Route path="/save-book" element={<SaveBook />} />
       </Routes>
     </div>
