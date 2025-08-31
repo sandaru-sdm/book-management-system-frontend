@@ -12,7 +12,6 @@ const getBooks = async () => {
     } catch (error) {
         console.error('Failed to fetch books:', error);
         toast.error('Failed to fetch books');
-        throw new Error('Failed to fetch books');
     }
 };
 
