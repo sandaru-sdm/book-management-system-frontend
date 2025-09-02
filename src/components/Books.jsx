@@ -6,7 +6,7 @@ import { toast } from 'react-hot-toast';
 const getBooks = async () => {
     try {
         const response = await axios.get(`http://localhost:8080/api/v1/books`);
-        const data = response.data; 
+        const data = response.data;
         console.log(data);
         return data;
     } catch (error) {
@@ -19,6 +19,8 @@ function Books() {
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+
+    const [deleteBookId, setDeleteBookId] = useState(null);
 
     useEffect(() => {
         const fetchBooks = async () => {
@@ -40,6 +42,27 @@ function Books() {
         navigate(`/update-book/${bookId}`);
     };
 
+    const handleDelete = async (deleteBookId) => {
+        if (!deleteBookId) {
+            toast.error("Book id is missing");
+            return
+        }
+
+        try {
+            const response = await axios.delete(`http://localhost:8080/api/v1/books/${deleteBookId}`);
+            console.log(response);
+            toast.success(response?.data?.message || "Book deleted successfully");
+        } catch (error) {
+            if (error.response) {
+                const { status, data } = error.response;
+                console.error("Server responded with error:", status, data);
+            }
+        } finally {
+            window.location.reload();
+        }
+
+    }
+
     return (
         <div className="container mt-4">
             <div className="row justify-content-center align-items-center">
@@ -60,11 +83,11 @@ function Books() {
                                         <strong>ISBN:</strong> {book.isbn}<br />
                                         <strong>Published Date:</strong> {book.publicationDate}
                                     </p>
-                                
+
                                     <button className="btn btn-primary w-100" onClick={() => handleUpdate(book.id)}>
                                         Update Book
                                     </button>
-                                    <button className="btn btn-danger w-100 mt-2">Delete Book</button>
+                                    <button type='button' className="btn btn-danger w-100 mt-2" data-bs-toggle='modal' data-bs-target='#confirmation-modal' onClick={() => setDeleteBookId(book.id)}>Delete Book</button>
                                 </div>
                             </div>
                         </div>
@@ -75,6 +98,25 @@ function Books() {
                     </div>
                 )}
             </div>
+
+            <div className='modal fade' id='confirmation-modal' tabIndex={-1} aria-labelledby='confirmation-modal-label'>
+                <div className='modal-dialog'>
+                    <div className='modal-content'>
+                        <div className='modal-header'>
+                            <h1 className='modal-title fs-5' id='confirmation-modal-label'>Confirmation</h1>
+                            <button type='button' className='btn-close' data-bs-dismiss="modal" aria-label='Close'></button>
+                        </div>
+                        <div className='modal-body'>
+                            Do you want to delete this book?
+                        </div>
+                        <div className='modal-footer'>
+                            <button type='button' className='btn btn-secondary' data-bs-dismiss="modal">Cancel</button>
+                            <button type='button' className='btn btn-danger' onClick={() => handleDelete(deleteBookId)}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     );
 }
