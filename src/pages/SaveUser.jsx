@@ -1,6 +1,7 @@
 import axios from 'axios';
 import React, { useState } from 'react'
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 function SaveUser() {
 
@@ -11,8 +12,12 @@ function SaveUser() {
 
     const [isLoading, setIsLoading] = useState(false);
 
+    const navigate = useNavigate();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        navigate("/users");
+        return;
         setIsLoading(true);
         console.log(name, email, password, confirmPassword);
 
@@ -35,6 +40,7 @@ function SaveUser() {
 
             if (response.status === 201) {
                 toast.success(response?.data?.message || "User saved successfully");
+                navigate("/users");
             } else {
                 toast.error("Failed to save user");
             }
