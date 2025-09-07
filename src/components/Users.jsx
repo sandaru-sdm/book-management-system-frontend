@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 
 const getUsers = async () => {
     try {
-        const response = await axios.get(`http://localhost:8080/api/v1/users`);
+        const response = await axios.get(`http://localhost:8080/api/v1/user`);
         const data = response.data;
         console.log(data);
         return data;
@@ -50,7 +50,7 @@ function Users() {
         <div className='container m-4'>
             <div className='row justify-content-center align-items-center'>
                 {users.length > 0 ? (
-                    books.map((user) => (
+                    users.map((user) => (
                         <div className='col-md-4 mb-4'>
                             <div className='card h-100'>
                                 <div className='card-body'>
