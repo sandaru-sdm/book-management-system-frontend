@@ -9,6 +9,8 @@ This template provides a minimal setup to get React working with Vite, including
 - 🔥 Hot Module Replacement (HMR)
 - 🧹 ESLint for code quality
 - 🛠️ Easy plugin integration
+- 👤 Update user details
+- 🗑️ Delete user functionality
 
 ## 🧩 Plugins
 
@@ -50,11 +52,23 @@ Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/cr
 ├── public/         # Static assets
 ├── src/            # Source code
 │   ├── App.jsx     # Main React component
+│   ├── pages/
+│   │   └── UpdateUser.jsx   # Update user details
+│   ├── components/
+│   │   └── Users.jsx        # List, update, and delete users
 │   └── main.jsx    # Entry point
 ├── package.json    # Project metadata & scripts
 ├── vite.config.js  # Vite configuration
 └── README.md       # Project documentation
 ```
+
+## 🧑‍🔧 Usage
+
+- **Update User:**  
+  Click the "Update User" button on a user card to edit user details.
+
+- **Delete User:**  
+  Click the "Delete User" button on a user card. Confirm deletion in the modal to remove the user.
 
 ## 📚 Resources
 
@@ -68,4 +82,4 @@ This project is licensed under the MIT License.
 
 ---
 
-Happy coding!
+Happy coding! 🎉
