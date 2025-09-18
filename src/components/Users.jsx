@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 const getUsers = async () => {
     try {
         const response = await axios.get(`http://localhost:8080/api/v1/users`);
-        return response.data;
+        return response.data; // no need to store in variable separately
     } catch (error) {
         toast.error('Failed to fetch users');
     }
@@ -15,14 +15,14 @@ const getUsers = async () => {
 function Users() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
     const [deleteUserId, setDeleteUserId] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUsers = async () => {
             try {
                 const data = await getUsers();
-                setUsers(data);
+                if (data) setUsers(data);
             } finally {
                 setLoading(false);
             }
@@ -87,6 +87,7 @@ function Users() {
                 )}
             </div>
 
+            {/* Delete Confirmation Modal */}
             <div className='modal fade' id='confirmation-modal' tabIndex={-1} aria-labelledby='confirmation-modal-label'>
                 <div className='modal-dialog'>
                     <div className='modal-content'>
