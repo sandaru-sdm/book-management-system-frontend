@@ -6,10 +6,8 @@ import { useNavigate } from 'react-router-dom';
 const getUsers = async () => {
     try {
         const response = await axios.get(`http://localhost:8080/api/v1/users`);
-        const data = response.data;
-        return data;
+        return response.data; // no need to store in variable separately
     } catch (error) {
-        console.error('Failed to fetch users:', error);
         toast.error('Failed to fetch users');
     }
 };
@@ -17,15 +15,14 @@ const getUsers = async () => {
 function Users() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
-
     const [deleteUserId, setDeleteUserId] = useState(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchUsers = async () => {
             try {
                 const data = await getUsers();
-                setUsers(data);
+                if (data) setUsers(data);
             } finally {
                 setLoading(false);
             }
@@ -55,16 +52,6 @@ function Users() {
             toast.error(error?.response?.data?.message || "Something went wrong");
         }
         setDeleteUserId(null);
-        // Close modal manually if needed (Bootstrap 5)
-        const modal = document.getElementById('confirmation-modal');
-        if (modal) {
-            modal.classList.remove('show');
-            modal.style.display = 'none';
-            document.body.classList.remove('modal-open');
-            document.body.style = '';
-            const backdrop = document.querySelector('.modal-backdrop');
-            if (backdrop) backdrop.remove();
-        }
     };
 
     return (
@@ -100,6 +87,7 @@ function Users() {
                 )}
             </div>
 
+            {/* Delete Confirmation Modal */}
             <div className='modal fade' id='confirmation-modal' tabIndex={-1} aria-labelledby='confirmation-modal-label'>
                 <div className='modal-dialog'>
                     <div className='modal-content'>
