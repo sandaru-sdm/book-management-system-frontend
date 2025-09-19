@@ -6,12 +6,10 @@ import { toast } from 'react-hot-toast';
 const getBooks = async () => {
     try {
         const response = await axios.get(`http://localhost:8080/api/v1/books`);
-        const data = response.data;
-        console.log(data);
-        return data;
+        return response.data;
     } catch (error) {
-        console.error('Failed to fetch books:', error);
         toast.error('Failed to fetch books');
+        return [];
     }
 };
 
@@ -19,17 +17,13 @@ function Books() {
     const [books, setBooks] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
-
     const [deleteBookId, setDeleteBookId] = useState(null);
 
     useEffect(() => {
         const fetchBooks = async () => {
-            try {
-                const data = await getBooks();
-                setBooks(data);
-            } finally {
-                setLoading(false);
-            }
+            const data = await getBooks();
+            setBooks(data);
+            setLoading(false);
         };
         fetchBooks();
     }, []);
@@ -42,26 +36,25 @@ function Books() {
         navigate(`/update-book/${bookId}`);
     };
 
-    const handleDelete = async (deleteBookId) => {
-        if (!deleteBookId) {
+    const handleDelete = async (bookId) => {
+        if (!bookId) {
             toast.error("Book id is missing");
-            return
+            return;
         }
-
         try {
-            const response = await axios.delete(`http://localhost:8080/api/v1/books/${deleteBookId}`);
-            console.log(response);
-            toast.success(response?.data?.message || "Book deleted successfully");
-        } catch (error) {
-            if (error.response) {
-                const { status, data } = error.response;
-                console.error("Server responded with error:", status, data);
+            const response = await axios.delete(`http://localhost:8080/api/v1/books/${bookId}`);
+            if (response.status === 200) {
+                toast.success(response?.data?.message || "Book deleted successfully");
+                setBooks(books.filter(book => book.id !== bookId));
+            } else {
+                toast.error(response?.data?.message || "Failed to delete book");
             }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || "Something went wrong");
         } finally {
-            window.location.reload();
+            setDeleteBookId(null);
         }
-
-    }
+    };
 
     return (
         <div className="container mt-4">
@@ -75,6 +68,7 @@ function Books() {
                                     className="card-img-top mb-3"
                                     style={{ height: '300px', objectFit: 'cover' }}
                                     alt={book.title}
+                                    onError={e => { e.target.src = '/images/default.jpg'; }}
                                 />
                                 <div className="card-body">
                                     <h5 className="card-title text-center fw-bold">{book.title}</h5>
@@ -83,11 +77,18 @@ function Books() {
                                         <strong>ISBN:</strong> {book.isbn}<br />
                                         <strong>Published Date:</strong> {book.publicationDate}
                                     </p>
-
                                     <button className="btn btn-primary w-100" onClick={() => handleUpdate(book.id)}>
                                         Update Book
                                     </button>
-                                    <button type='button' className="btn btn-danger w-100 mt-2" data-bs-toggle='modal' data-bs-target='#confirmation-modal' onClick={() => setDeleteBookId(book.id)}>Delete Book</button>
+                                    <button
+                                        type='button'
+                                        className="btn btn-danger w-100 mt-2"
+                                        data-bs-toggle='modal'
+                                        data-bs-target='#confirmation-modal'
+                                        onClick={() => setDeleteBookId(book.id)}
+                                    >
+                                        Delete Book
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -111,12 +112,20 @@ function Books() {
                         </div>
                         <div className='modal-footer'>
                             <button type='button' className='btn btn-secondary' data-bs-dismiss="modal">Cancel</button>
-                            <button type='button' className='btn btn-danger' onClick={() => handleDelete(deleteBookId)}>Delete</button>
+                            
+                            <button
+                                type='button'
+                                className='btn btn-danger'
+                                onClick={() => handleDelete(deleteBookId)}
+                                data-bs-dismiss="modal"
+                                disabled={!deleteBookId}
+                            >
+                                Delete
+                            </button>
                         </div>
                     </div>
                 </div>
             </div>
-
         </div>
     );
 }
