@@ -7,8 +7,8 @@ const API_BASE_URL = 'http://localhost:8080/api/v1';
 
 const getUsers = async () => {
     try {
-        const response = await axios.get(`${API_BASE_URL}/users`);
-        return response.data;
+        const response = await axios.get(`http://localhost:8080/api/v1/users`);
+        return response.data; 
     } catch (error) {
         throw new Error(error?.response?.data?.message || 'Failed to fetch users');
     }
@@ -20,15 +20,16 @@ function Users() {
     const [deleteUserId, setDeleteUserId] = useState(null);
     const navigate = useNavigate();
 
-    const fetchUsers = useCallback(async () => {
-        try {
-            const data = await getUsers();
-            setUsers(data || []);
-        } catch (error) {
-            toast.error(error.message);
-        } finally {
-            setLoading(false);
-        }
+    useEffect(() => {
+        const fetchUsers = async () => {
+            try {
+                const data = await getUsers();
+                if (data) setUsers(data);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchUsers();
     }, []);
 
     useEffect(() => {
@@ -115,15 +116,8 @@ function Users() {
                 )}
             </div>
 
-            {/* Delete Confirmation Modal */}
-            <div 
-                className='modal fade' 
-                id='confirmation-modal' 
-                tabIndex={-1} 
-                aria-labelledby='confirmation-modal-label'
-                aria-hidden="true"
-            >
-                <div className='modal-dialog modal-dialog-centered'>
+            <div className='modal fade' id='confirmation-modal' tabIndex={-1} aria-labelledby='confirmation-modal-label'>
+                <div className='modal-dialog'>
                     <div className='modal-content'>
                         <div className='modal-header'>
                             <h5 className='modal-title' id='confirmation-modal-label'>
