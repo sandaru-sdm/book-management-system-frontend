@@ -1,132 +1,143 @@
 import axios from 'axios';
-import React, { useState } from 'react'
+import React, { useState } from 'react';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 
 function SaveBook() {
-
-    const [title, setTitle] = useState("");
-    const [author, setAuthor] = useState("");
-    const [isbn, setIsbn] = useState("");
-    const [publicationDate, setPublicationDate] = useState("");
-
+    const [title, setTitle] = useState('');
+    const [author, setAuthor] = useState('');
+    const [isbn, setIsbn] = useState('');
+    const [publicationDate, setPublicationDate] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
+
+    const clearFields = () => {
+        setTitle('');
+        setAuthor('');
+        setIsbn('');
+        setPublicationDate('');
+    };
+
+    const validateForm = () => {
+        if (!title.trim() || !author.trim() || !isbn.trim()) {
+            toast.error("Please fill all required fields");
+            return false;
+        }
+        return true;
+    };
 
     const submitForm = async (e) => {
         e.preventDefault();
+        if (!validateForm()) return;
+
         setIsLoading(true);
-
-        console.log(title, author, isbn, publicationDate);
-
-        if (title === "" || author === "" || isbn === "") {
-            console.log("Fill all the text fields");
-            toast.error("Fill all the text fields");
-            setIsLoading(false);
-            return;
-        }
-
-        const bookData = { title, author, isbn, publicationDate };
-        console.log(bookData);
+        const bookData = { title: title.trim(), author: author.trim(), isbn: isbn.trim(), publicationDate };
 
         try {
             const response = await axios.post(`http://localhost:8080/api/v1/books`, bookData);
-
-            // Success (201 Created)
-            console.log("Book saved successfully");
             toast.success(response?.data?.message || "Book saved successfully");
-
             clearFields();
-
+            navigate('/'); // Redirect to home page after successful save
         } catch (error) {
-            // Axios provides error.response if server responded
-            if (error.response) {
-                const { status, data } = error.response;
-                console.error("Server responded with error:", status, data);
-
-                switch (status) {
-                    case 400:
-                        toast.error(data?.message || "Bad Request");
-                        break;
-                    case 404:
-                        toast.error(data?.message || "API endpoint not found");
-                        break;
-                    case 409:
-                        toast.error(data?.message || "Book with the same ISBN already exists");
-                        break;
-                    case 500:
-                        toast.error(data?.message || "Internal Server Error");
-                        break;
-                    default:
-                        toast.error(data?.message || `Unexpected Error (${status})`);
-                        break;
-                }
-            } else if (error.request) {
-                // Request was sent but no response (network issue, CORS, server down)
-                console.error("No response received:", error.request);
-                toast.error("No response from server. Please check your connection.");
-            } else {
-                // Something else went wrong while setting up the request
-                console.error("Error setting up request:", error.message);
-                toast.error(error.message || "Error saving book");
-            }
+            handleError(error);
         } finally {
             setIsLoading(false);
-            clearFields();
         }
     };
 
+    const handleError = (error) => {
+        if (error.response) {
+            const { status, data } = error.response;
+            const errorMessage = data?.message || getDefaultErrorMessage(status);
+            toast.error(errorMessage);
+        } else if (error.request) {
+            toast.error("Network error. Please check your connection.");
+        } else {
+            toast.error("An unexpected error occurred.");
+        }
+    };
 
-    const clearFields = () => {
-        setTitle("");
-        setAuthor("");
-        setIsbn("");
-        setPublicationDate("");
-    }
+    const getDefaultErrorMessage = (status) => {
+        const errorMessages = {
+            400: "Invalid book data provided",
+            404: "API endpoint not found",
+            409: "Book with this ISBN already exists",
+            500: "Internal server error"
+        };
+        return errorMessages[status] || `Unexpected error (${status})`;
+    };
 
     return (
-        <div className='container d-flex justify-content-center align-items-center vh-100'>
+        <div className='container d-flex justify-content-center align-items-center min-vh-100'>
             <div className='card col-md-6'>
-                <div className='card-body m-3'>
-                    <h2 className='card-title text-center fw-bold'>Add New Book</h2>
+                <div className='card-body'>
+                    <h2 className='text-center card-title mb-4'>Add New Book</h2>
                     <form onSubmit={submitForm} className='row g-3'>
-
                         <div className='col-md-12'>
-                            <label htmlFor="title" className='form-label'>Title</label>
-                            <input type='text' className='form-control' placeholder='Title' id="title" value={title} onChange={e => setTitle(e.target.value)} />
+                            <label className='form-label' htmlFor='title'>Title*</label>
+                            <input
+                                type="text"
+                                id='title'
+                                className='form-control'
+                                placeholder='Enter Title'
+                                value={title}
+                                onChange={(e) => setTitle(e.target.value)}
+                                required
+                            />
                         </div>
-
                         <div className='col-md-12'>
-                            <label htmlFor="author" className='form-label'>Author</label>
-                            <input type="text" className='form-control' id="author" placeholder='Author' value={author} onChange={e => setAuthor(e.target.value)} />
+                            <label className='form-label' htmlFor='author'>Author*</label>
+                            <input
+                                type="text"
+                                id='author'
+                                className='form-control'
+                                placeholder='Enter Author'
+                                value={author}
+                                onChange={(e) => setAuthor(e.target.value)}
+                                required
+                            />
                         </div>
-
-                        <div className="col-md-12">
-                            <label htmlFor="isbn" className='form-label'>ISBN</label>
-                            <input type="text" className='form-control' id="isbn" placeholder='ISBN' value={isbn} onChange={e => setIsbn(e.target.value)} />
-
+                        <div className='col-md-12'>
+                            <label className='form-label' htmlFor='isbn'>ISBN*</label>
+                            <input
+                                type="text"
+                                id='isbn'
+                                className='form-control'
+                                placeholder='Enter ISBN'
+                                value={isbn}
+                                onChange={(e) => setIsbn(e.target.value)}
+                                required
+                            />
                         </div>
-
-                        <div className="col-md-12">
-                            <label htmlFor="publicationDate" className='form-label'>Publication Date</label>
-                            <input type="date" className='form-control' id="publicationDate" value={publicationDate} onChange={(e) => setPublicationDate(e.target.value)} />
+                        <div className='col-md-12'>
+                            <label className='form-label' htmlFor='publicationDate'>Publication Date</label>
+                            <input
+                                type="date"
+                                id='publicationDate'
+                                className='form-control'
+                                value={publicationDate}
+                                onChange={(e) => setPublicationDate(e.target.value)}
+                            />
                         </div>
-
-                        <div className='card-footer col-md-12 mt-5'>
-                            <button
-                                type="submit"
-                                className="btn btn-primary col-12 d-flex justify-content-center align-items-center"
+                        <div className='col-md-12'>
+                            <button 
+                                type="submit" 
+                                className='btn btn-primary w-100 mt-3'
                                 disabled={isLoading}
                             >
-                                {isLoading ? "Saving..." : "Save Book"}
+                                {isLoading ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        Saving...
+                                    </>
+                                ) : 'Save Book'}
                             </button>
                         </div>
                     </form>
                 </div>
             </div>
-
         </div>
-
-
-    )
+    );
 }
 
 export default SaveBook;

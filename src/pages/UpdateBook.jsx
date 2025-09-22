@@ -1,127 +1,164 @@
 import axios from 'axios';
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { useNavigate, useParams } from 'react-router-dom';
 
-// Function to get book details by ID
+const API_BASE_URL = 'http://localhost:8080/api/v1';
+
 const getBookById = async (bookId) => {
-  if (bookId === undefined) return;
-  try {
-    const response = await axios.get(`http://localhost:8080/api/v1/books/${bookId}`);
-    console.log(response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Failed to fetch books:', error);
-    toast.error("Failed to fetch book details");
-  }
+    if (!bookId) return null;
+    try {
+        const response = await axios.get(`${API_BASE_URL}/books/${bookId}`);
+        return response.data;
+    } catch (error) {
+        throw new Error(error?.response?.data?.message || "Failed to fetch book details");
+    }
 };
 
-
 function UpdateBook() {
-  const { bookId } = useParams();
-  const navigate = useNavigate();
+    const { bookId } = useParams();
+    const navigate = useNavigate();
 
-  const [title, setTitle] = useState("");
-  const [author, setAuthor] = useState("");
-  const [isbn, setIsbn] = useState("");
-  const [publicationDate, setPublicationDate] = useState("");
+    const [formData, setFormData] = useState({
+        title: "",
+        author: "",
+        isbn: "",
+        publicationDate: ""
+    });
+    const [isLoading, setIsLoading] = useState(false);
+    const [isFetching, setIsFetching] = useState(true);
 
-  const [isLoading, setIsLoading] = useState(false);
+    useEffect(() => {
+        const fetchBookDetails = async () => {
+            try {
+                if (!bookId) {
+                    throw new Error("Book ID is missing");
+                }
+                const data = await getBookById(bookId);
+                if (!data) {
+                    throw new Error("No data found");
+                }
+                setFormData({
+                    title: data.title,
+                    author: data.author,
+                    isbn: data.isbn,
+                    publicationDate: data.publicationDate || ""
+                });
+            } catch (error) {
+                toast.error(error.message);
+                navigate('/');
+            } finally {
+                setIsFetching(false);
+            }
+        };
 
-  // Get Book details by id and set to state variables
-  useEffect(() => {
-    (async () => {
-      if (!bookId) {
-        toast.error("Book ID is missing in the URL");
-        return;
-      }
-      const data = await getBookById(bookId);
-      if (!data) {
-        toast.error("No data found for the given Book ID");
-        return;
-      }
-      setTitle(data.title);
-      setAuthor(data.author);
-      setIsbn(data.isbn);
-      setPublicationDate(data.publicationDate);
+        fetchBookDetails();
+    }, [bookId, navigate]);
 
-      console.log(data);
-    })();
-  }, [bookId]);
+    const handleChange = (e) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [id]: value
+        }));
+    };
 
-  // Submit form function
-  const submitForm = async (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    console.log(title, author, isbn, publicationDate);
+    const validateForm = () => {
+        const { title, author, isbn } = formData;
+        if (!title.trim() || !author.trim() || !isbn.trim()) {
+            toast.error("Title, author and ISBN are required");
+            return false;
+        }
+        return true;
+    };
 
-    if (title === "" || author === "" || isbn === "") {
-      toast.error("Fill all the text fields");
-      setIsLoading(false);
-      return;
+    const submitForm = async (e) => {
+        e.preventDefault();
+        if (!validateForm()) return;
+
+        setIsLoading(true);
+        try {
+            const response = await axios.put(
+                `${API_BASE_URL}/books/${bookId}`,
+                formData
+            );
+
+            if (response.status === 200) {
+                toast.success("Book updated successfully");
+                navigate("/");
+            }
+        } catch (error) {
+            toast.error(error?.response?.data?.message || "Failed to update book");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (isFetching) {
+        return (
+            <div className="d-flex justify-content-center align-items-center vh-100">
+                <div className="spinner-border text-primary" role="status">
+                    <span className="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        );
     }
 
-    const bookData = { title, author, isbn, publicationDate };
+    return (
+        <div className='container d-flex justify-content-center align-items-center vh-100'>
+            <div className='card col-md-6 shadow'>
+                <div className='card-body p-4'>
+                    <h1 className='text-center card-title fw-bold mb-4'>Update Book</h1>
+                    <form onSubmit={submitForm} className='row g-3'>
+                        {['title', 'author', 'isbn'].map((field) => (
+                            <div className='col-md-12' key={field}>
+                                <label className='form-label' htmlFor={field}>
+                                    {field.charAt(0).toUpperCase() + field.slice(1)} *
+                                </label>
+                                <input
+                                    type="text"
+                                    id={field}
+                                    className='form-control'
+                                    placeholder={`Enter ${field.charAt(0).toUpperCase() + field.slice(1)}`}
+                                    value={formData[field]}
+                                    onChange={handleChange}
+                                    required
+                                />
+                            </div>
+                        ))}
 
-    // Update book API call
-    try {
-      const response = await axios.put(`http://localhost:8080/api/v1/books/${bookId}`, bookData);
+                        <div className='col-md-12'>
+                            <label className='form-label' htmlFor='publicationDate'>
+                                Publication Date
+                            </label>
+                            <input
+                                type="date"
+                                id='publicationDate'
+                                className='form-control'
+                                value={formData.publicationDate}
+                                onChange={handleChange}
+                            />
+                        </div>
 
-      if (response.status === 200) {
-        toast.success(response?.data?.message || "Book updated successfully");
-      } else {
-        toast.error(response?.data?.message || "Failed to update book");
-      }
-
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Something went wrong");
-      console.error("Error updating book:", error);
-    } finally {
-      setIsLoading(false);
-      navigate("/");
-    }
-  }
-
-  return (
-    <div>
-      <div className='container d-flex justify-content-center align-items-center vh-100'>
-        <div className='card col-6'>
-          <div className='card-body'>
-            <h1 className='text-center card-title fw-bold'>Update Book</h1>
-            <form onSubmit={submitForm} className='row g-3'>
-
-              <div className='col-md-12'>
-                <label className='form-label' htmlFor='title'>Title</label>
-                <input type="text" id='title' className='form-control' placeholder='Enter Book Title' value={title} onChange={(e) => setTitle(e.target.value)} />
-              </div>
-
-              <div className='col-md-12'>
-                <label className='form-label mt-2' htmlFor='author'>Author</label>
-                <input type="text" id='author' className='form-control' placeholder='Enter Author Name' value={author} onChange={(e) => setAuthor(e.target.value)} />
-              </div>
-
-              <div className='col-md-12'>
-                <label className='form-label mt-2' htmlFor='isbn'>ISBN</label>
-                <input type="text" id='isbn' className='form-control' placeholder='Enter ISBN Number' value={isbn} onChange={(e) => setIsbn(e.target.value)} />
-              </div>
-
-              <div className='col-md-12'>
-                <label className='form-label mt-2' htmlFor='publicationDate'>Publication Date</label>
-                <input type="date" id='publicationDate' className='form-control' value={publicationDate} onChange={(e) => setPublicationDate(e.target.value)} />
-              </div>
-
-              <div className='col-md-12'>
-                <button type="submit" className='btn btn-primary mt-3 col-12' disabled={isLoading}>
-                  {isLoading ? "Updating..." : "Update Book"}
-                </button>
-              </div>
-
-            </form>
-          </div>
+                        <div className='col-md-12'>
+                            <button
+                                type="submit"
+                                className='btn btn-primary w-100 mt-3'
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <>
+                                        <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        Updating...
+                                    </>
+                                ) : "Update Book"}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  )
+    );
 }
 
 export default UpdateBook;
