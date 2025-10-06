@@ -1,35 +1,28 @@
-import axios from 'axios';
 import React, { useState, useEffect, useCallback } from 'react';
-import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-
-const API_BASE_URL = 'http://localhost:8080/api/v1';
-
-const getUsers = async () => {
-    try {
-        const response = await axios.get(`http://localhost:8080/api/v1/users`);
-        return response.data; 
-    } catch (error) {
-        throw new Error(error?.response?.data?.message || 'Failed to fetch users');
-    }
-};
+import toast from 'react-hot-toast';
+import { userService } from '../services/userService';
+import UserCard from './UserCard';
+import LoadingSpinner from './LoadingSpinner'; // Create this component if not exists
 
 function Users() {
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [deleteUserId, setDeleteUserId] = useState(null);
     const navigate = useNavigate();
 
-    useEffect(() => {
-        const fetchUsers = async () => {
-            try {
-                const data = await getUsers();
-                if (data) setUsers(data);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchUsers();
+    const fetchUsers = useCallback(async () => {
+        try {
+            const data = await userService.getUsers();
+            setUsers(data);
+            setError(null);
+        } catch (err) {
+            setError('Failed to fetch users');
+            toast.error('Failed to fetch users');
+        } finally {
+            setLoading(false);
+        }
     }, []);
 
     useEffect(() => {
@@ -41,34 +34,30 @@ function Users() {
     }, [navigate]);
 
     const handleDelete = async (userId) => {
-        if (!userId) return;
-        
+        if (!userId) {
+            toast.error("User ID is missing");
+            return;
+        }
+
         try {
-            const response = await axios.delete(`${API_BASE_URL}/users/${userId}`);
-            
-            if (response.status === 200) {
-                toast.success(response?.data?.message || "User deleted successfully");
-                setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
-            }
+            await userService.deleteUser(userId);
+            toast.success("User deleted successfully");
+            setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
         } catch (error) {
             toast.error(error?.response?.data?.message || "Failed to delete user");
         } finally {
             setDeleteUserId(null);
-            // Close modal manually if needed
-            const modalElement = document.getElementById('confirmation-modal');
-            const modalInstance = bootstrap.Modal.getInstance(modalElement);
-            if (modalInstance) {
-                modalInstance.hide();
-            }
         }
     };
 
     if (loading) {
+        return <LoadingSpinner />;
+    }
+
+    if (error) {
         return (
-            <div className="d-flex justify-content-center align-items-center min-vh-50">
-                <div className="spinner-border text-primary" role="status">
-                    <span className="visually-hidden">Loading users...</span>
-                </div>
+            <div className="alert alert-danger text-center m-4" role="alert">
+                {error}
             </div>
         );
     }
@@ -78,36 +67,12 @@ function Users() {
             <div className='row g-4 justify-content-center'>
                 {users.length > 0 ? (
                     users.map((user) => (
-                        <div className='col-12 col-md-6 col-lg-4' key={user.id}>
-                            <div className='card h-100 shadow-sm'>
-                                <div className='card-body d-flex flex-column'>
-                                    <h5 className='card-title fw-bold mb-3'>{user.name}</h5>
-                                    <p className='card-text mb-4'>
-                                        <i className="bi bi-envelope me-2"></i>
-                                        {user.email}
-                                    </p>
-                                    <div className='mt-auto'>
-                                        <button 
-                                            className="btn btn-outline-primary w-100 mb-2" 
-                                            onClick={() => handleUpdate(user.id)}
-                                        >
-                                            <i className="bi bi-pencil me-2"></i>
-                                            Update
-                                        </button>
-                                        <button
-                                            type='button'
-                                            className="btn btn-outline-danger w-100"
-                                            data-bs-toggle='modal'
-                                            data-bs-target='#confirmation-modal'
-                                            onClick={() => setDeleteUserId(user.id)}
-                                        >
-                                            <i className="bi bi-trash me-2"></i>
-                                            Delete
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <UserCard
+                            key={user.id}
+                            user={user}
+                            onUpdate={handleUpdate}
+                            onDelete={setDeleteUserId}
+                        />
                     ))
                 ) : (
                     <div className='col-12 text-center'>
@@ -116,13 +81,12 @@ function Users() {
                 )}
             </div>
 
-            <div className='modal fade' id='confirmation-modal' tabIndex={-1} aria-labelledby='confirmation-modal-label'>
+            {/* Confirmation Modal */}
+            <div className='modal fade' id='confirmation-modal' tabIndex={-1}>
                 <div className='modal-dialog'>
                     <div className='modal-content'>
                         <div className='modal-header'>
-                            <h5 className='modal-title' id='confirmation-modal-label'>
-                                Confirm Delete
-                            </h5>
+                            <h5 className='modal-title'>Confirm Delete</h5>
                             <button 
                                 type='button' 
                                 className='btn-close' 
@@ -145,6 +109,7 @@ function Users() {
                                 type='button'
                                 className='btn btn-danger'
                                 onClick={() => handleDelete(deleteUserId)}
+                                data-bs-dismiss="modal"
                                 disabled={!deleteUserId}
                             >
                                 Delete User
